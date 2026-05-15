@@ -19,7 +19,7 @@ public class Resume {
     private String originalFileName;
 
     @Column(nullable = false,unique = true)
-    private String storedFilename;
+    private String storedFileName;
 
     @Column(nullable = false)
     private String contentType;

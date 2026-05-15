@@ -1,4 +1,7 @@
 package com.ResumeScore.ATS.job;
 
-public class JobDescriptionRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface JobDescriptionRepository extends JpaRepository<JobDescription,Long> {
+
 }
