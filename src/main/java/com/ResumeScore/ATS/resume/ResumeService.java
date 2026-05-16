@@ -44,7 +44,7 @@ public class ResumeService {
 
         Resume resume = new Resume();
         resume.setOriginalFileName(originalFileName);
-        resume.setStoredFilename(storedFileName);
+        resume.setStoredFileName(storedFileName);
         resume.setContentType(file.getContentType() == null ? "application/pdf" : file.getContentType());
         resume.setStoragePath(filePath.toString());
         resume.setExtractedText(extractedText);
