@@ -13,9 +13,11 @@ import java.util.List;
 public class AnalysisResponse {
 
     private long analysisId;
+    private long resumeId;
+    private long jobDescriptionId;
     private double matchScore;
-    private List<String>matchedKeyWords;
-    private List<String>missingKeywords;
-    private String Suggestions;
+    private List<String> matchedKeywords;
+    private List<String> missingKeywords;
+    private String suggestions;
     private AnalysisStatus status;
 }

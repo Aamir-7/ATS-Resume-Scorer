@@ -19,7 +19,7 @@ public class JobDescriptionController {
         this.jobDescriptionService = jobDescriptionService;
     }
 
-
+    @PostMapping
     public ResponseEntity<
             ApiResponse<JobDescriptionResponse>
             >createDescription(
