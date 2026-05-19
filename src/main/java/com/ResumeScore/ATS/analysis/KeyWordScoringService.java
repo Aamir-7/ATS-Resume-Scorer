@@ -7,31 +7,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Comparator;
 
 @Service
 public class KeyWordScoringService {
 
-    private static final Set<String> STOP_WORDS = Set.of(
-            "a", "an", "and", "are", "as", "at", "be", "by", "for", "from",
-            "in", "is", "it", "of", "on", "or", "that", "the", "to", "with",
-            "will", "this", "you", "your", "we", "our", "need", "needs",
-            "required", "preferred", "looking", "seeking", "must", "should",
-            "candidate", "candidates", "role", "job", "work", "team"
-    );
-
-    private static final Set<String> ROLE_WORDS = Set.of(
-            "developer", "engineer", "programmer", "specialist", "analyst",
-            "consultant", "manager", "designer", "architect"
-    );
-
     private static final Set<String> SKILL_PHRASES = Set.of(
             "java",
-            "spring",
             "spring boot",
+            "spring",
             "hibernate",
             "microservices",
-            "rest",
             "rest api",
+            "rest",
             "postgresql",
             "mysql",
             "oracle",
@@ -101,8 +89,12 @@ public class KeyWordScoringService {
     private Set<String> extractSkillKeywords(String text) {
         Set<String> foundSkills = new HashSet<>();
 
-        for (String phrase : SKILL_PHRASES) {
-            if (containsWholePhrase(text, phrase)) {
+        List<String> orderedPhrases = SKILL_PHRASES.stream()
+                .sorted(Comparator.comparingInt(String::length).reversed())
+                .toList();
+
+        for (String phrase : orderedPhrases) {
+            if (containsWholePhrase(text, phrase) && !isCoveredByLongerPhrase(phrase, foundSkills)) {
                 foundSkills.add(phrase);
             }
         }
@@ -114,6 +106,11 @@ public class KeyWordScoringService {
         String wrappedText = " " + text + " ";
         String wrappedPhrase = " " + phrase + " ";
         return wrappedText.contains(wrappedPhrase);
+    }
+
+    private boolean isCoveredByLongerPhrase(String phrase, Set<String> foundSkills) {
+        return foundSkills.stream().anyMatch(existing ->
+                existing.contains(phrase) && !existing.equals(phrase));
     }
 
     private double calculateScore(int matchedCount, int totalJobKeywords) {
