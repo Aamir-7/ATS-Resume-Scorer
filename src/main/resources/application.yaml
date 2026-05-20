@@ -1,6 +1,8 @@
 spring:
   application:
     name: ATS
+  config:
+    import: "optional:file:.env[.properties]"
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/ats}
@@ -29,6 +31,11 @@ app:
   storage:
     resume-dir: uploads/resumes
     report-dir: uploads/reports
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  model: gemini-2.5-flash
+  base-url: https://generativelanguage.googleapis.com
 
 logging:
   level:
