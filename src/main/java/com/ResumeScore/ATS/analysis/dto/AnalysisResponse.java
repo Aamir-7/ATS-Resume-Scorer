@@ -18,6 +18,11 @@ public class AnalysisResponse {
     private double matchScore;
     private List<String> matchedKeywords;
     private List<String> missingKeywords;
-    private String suggestions;
+    private String summary;
+    private List<String>strengths;
+    private List<String>weaknesses;
+    private List<String>atsRisks;
+    private List<String> rewriteSuggestions;
+    private List<String>improvedBullets;
     private AnalysisStatus status;
 }

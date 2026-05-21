@@ -2,7 +2,6 @@ package com.ResumeScore.ATS.analysis;
 
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -41,7 +40,8 @@ public class KeyWordScoringService {
             "sql"
     );
 
-    public AnalysisResult analyze(String resumeText, String jobDescriptionText) {          validateText(resumeText, jobDescriptionText);
+    public AnalysisResult analyze(String resumeText, String jobDescriptionText) {
+        validateText(resumeText, jobDescriptionText);
 
         String normalizedResume = normalizeText(resumeText);
         String normalizedJob = normalizeText(jobDescriptionText);

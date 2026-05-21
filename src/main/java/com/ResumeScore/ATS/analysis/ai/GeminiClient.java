@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -16,8 +15,6 @@ import java.util.Map;
 public class GeminiClient {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiClient.class);
-
-
 
     private final GeminiConfig geminiConfig;
     private final RestClient restClient;
@@ -34,9 +31,6 @@ public class GeminiClient {
                 geminiConfig.getModel(),
                 geminiConfig.getApiKey() != null && !geminiConfig.getApiKey().isBlank());
     }
-
-    
-
 
     public String generateContent(String prompt) {
         Map<String, Object> requestBody =
