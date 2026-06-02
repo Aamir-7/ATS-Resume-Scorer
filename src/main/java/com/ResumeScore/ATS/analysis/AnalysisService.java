@@ -9,8 +9,11 @@ import com.ResumeScore.ATS.job.JobDescription;
 import com.ResumeScore.ATS.job.JobDescriptionRepository;
 import com.ResumeScore.ATS.resume.Resume;
 import com.ResumeScore.ATS.resume.ResumeRepository;
+import com.ResumeScore.ATS.user.User;
+import com.ResumeScore.ATS.user.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,29 +28,33 @@ public class AnalysisService {
     private final JobDescriptionRepository jobDescriptionRepository;
     private final KeyWordScoringService keyWordScoringService;
     private final GeminiAnalysisService geminiAnalysisService;
+    private final UserRepository userRepository;
 
     public AnalysisService(
             AnalysisRepository analysisRepository,
             ResumeRepository resumeRepository,
             JobDescriptionRepository jobDescriptionRepository,
             KeyWordScoringService keyWordScoringService,
-            GeminiAnalysisService geminiAnalysisService
+            GeminiAnalysisService geminiAnalysisService,
+            UserRepository userRepository
     ) {
         this.analysisRepository = analysisRepository;
         this.resumeRepository = resumeRepository;
         this.jobDescriptionRepository = jobDescriptionRepository;
         this.keyWordScoringService = keyWordScoringService;
         this.geminiAnalysisService = geminiAnalysisService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
     public AnalysisResponse createAnalysis(AnalysisRequest request, String mode) {
         validateRequest(request);
+        User currentUser = getCurrentUser();
 
-        Resume resume = resumeRepository.findById(request.getResumeId())
+        Resume resume = resumeRepository.findByIdAndUserId(request.getResumeId(), currentUser.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Resume not found "));
 
-        JobDescription jobDescription = jobDescriptionRepository.findById(request.getJobDescriptionId())
+        JobDescription jobDescription = jobDescriptionRepository.findByIdAndUserId(request.getJobDescriptionId(), currentUser.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Job description not found "));
 
         KeyWordScoringService.AnalysisResult result = keyWordScoringService.analyze(
@@ -63,11 +70,19 @@ public class AnalysisService {
         Analysis analysis = new Analysis();
         analysis.setResume(resume);
         analysis.setJobDescription(jobDescription);
+        analysis.setUser(currentUser);
         analysis.setStatus(AnalysisStatus.COMPLETED);
         analysis.setMatchScore(result.getMatchScore());
         analysis.setMatchedKeywords(result.getMatchedKeywords());
         analysis.setMissingKeywords(result.getMissingKeywords());
         analysis.setSuggestions(buildFallbackSuggestion(result.getMissingKeywords(), aiResponse));
+        analysis.setSummary(aiResponse!=null ? aiResponse.getSummary() : null);
+        analysis.setStrengths(aiResponse!=null ? aiResponse.getStrengths() : List.of());
+        analysis.setWeaknesses(aiResponse!=null ? aiResponse.getWeaknesses() : List.of());
+        analysis.setAtsRisks(aiResponse!=null ? aiResponse.getAtsRisks() : List.of());
+        analysis.setRewriteSuggestions(aiResponse!=null ? aiResponse.getRewriteSuggestions() : List.of());
+        analysis.setImprovedBullets(aiResponse!=null ? aiResponse.getImprovedBullets() : List.of());
+
 
         Analysis savedAnalysis = analysisRepository.save(analysis);
 
@@ -90,7 +105,7 @@ public class AnalysisService {
 
     @Transactional(readOnly = true)
     public AnalysisResponse getAnalysisById(Long analysisId) {
-        Analysis analysis = analysisRepository.findById(analysisId)
+        Analysis analysis = analysisRepository.findByIdAndUserId(analysisId, getCurrentUser().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Analysis not found"));
 
         return new AnalysisResponse(
@@ -100,12 +115,12 @@ public class AnalysisService {
                 analysis.getMatchScore(),
                 analysis.getMatchedKeywords(),
                 analysis.getMissingKeywords(),
-                analysis.getSuggestions(),
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of(),
+                analysis.getSummary(),
+                analysis.getStrengths(),
+                analysis.getWeaknesses(),
+                analysis.getAtsRisks(),
+                analysis.getRewriteSuggestions(),
+                analysis.getImprovedBullets(),
                 analysis.getStatus()
         );
     }
@@ -149,5 +164,12 @@ public class AnalysisService {
         if (request.getJobDescriptionId() == null) {
             throw new IllegalArgumentException("Job description id is required ");
         }
+    }
+
+    private User getCurrentUser() {
+        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
+        long userId = Long.parseLong(principal);
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 }

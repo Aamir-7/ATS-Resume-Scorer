@@ -36,37 +36,45 @@ public class GeminiAnalysisService {
     }
 
     private String buildPrompt(GeminiAnalysisRequest request) {
-        return """
-                  You are an ATS resume reviewer.
-                  
-                  Analyze the resume against the job description.
-                  Return the response in exactly this format:
-                  
-                  SUMMARY:
-                  <short summary>
-                  
-                  REWRITE_SUGGESTIONS:
-                  - <suggestion 1>
-                  - <suggestion 2>
-                  
-                  KEYWORD_SUGGESTIONS:
-                  - <keyword 1>
-                  - <keyword 2>
-                  
-                  IMPROVED_BULLETS:
-                  - <bullet 1>
-                  - <bullet 2>
-                  
-                  Match Score: %s
-                  Matched Keywords: %s
-                  Missing Keywords: %s
-                  
-                  Resume:
-                  %s
-                  
-                  Job Description:
-                  %s
-                  """.formatted(
+        return  """
+                You are an ATS resume reviewer.
+                
+                Analyze the resume against the job description.
+                Return the response in exactly this format:
+                
+                SUMMARY:
+                <short summary>
+                
+                STRENGTHS:
+                - <strength 1>
+                - <strength 2>
+                
+                WEAKNESSES:
+                - <weakness 1>
+                - <weakness 2>
+                
+                ATS_RISKS:
+                - <risk 1>
+                - <risk 2>
+                
+                REWRITE_SUGGESTIONS:
+                - <suggestion 1>
+                - <suggestion 2>
+                
+                IMPROVED_BULLETS:
+                - <bullet 1>
+                - <bullet 2>
+                
+                Match Score: %s
+                Matched Keywords: %s
+                Missing Keywords: %s
+                
+                Resume:
+                %s
+                
+                Job Description:
+                %s
+                """.formatted(
                           request.getMatchScore(),
                         request.getMatchedKeywords(),
                         request.getMissingKeyWords(),
@@ -82,15 +90,21 @@ public class GeminiAnalysisService {
         }
 
         response.setSummary(extractSummary(responseText));
-        response.setRewriteSuggestions(extractList(responseText, "REWRITE_SUGGESTIONS:", "KEYWORD_SUGGESTIONS:"));
-        response.setKeyWordSuggestions(extractList(responseText, "KEYWORD_SUGGESTIONS:", "IMPROVED_BULLETS:"));
-        response.setImprovedBullets(extractList(responseText, "IMPROVED_BULLETS:", null));
+        response.setStrengths(extractList(responseText, "STRENGTHS:",
+                "WEAKNESSES:"));
+        response.setWeaknesses(extractList(responseText, "WEAKNESSES:",
+                "ATS_RISKS:"));
+        response.setAtsRisks(extractList(responseText, "ATS_RISKS:",
+                "REWRITE_SUGGESTIONS:"));
+        response.setRewriteSuggestions(extractList(responseText,
+                "REWRITE_SUGGESTIONS:", "IMPROVED_BULLETS:"));
+        response.setImprovedBullets(extractList(responseText, "IMPROVED_BULLETS:",
+                null));
         return response;
     }
 
     private String extractSummary(String text) {
-        String summary = extractSection(text, "SUMMARY:", "REWRITE_SUGGESTIONS:");
-        return summary == null ? "" : summary.trim();
+        return extractSection(text, "SUMMARY:", "STRENGTHS:").trim();
     }
 
     private List<String> extractList(String text, String startLabel, String endLabel) {

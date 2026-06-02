@@ -1,7 +1,10 @@
 package com.ResumeScore.ATS.resume;
 
 import com.ResumeScore.ATS.resume.dto.ResumeUploadResponse;
+import com.ResumeScore.ATS.user.User;
+import com.ResumeScore.ATS.user.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,15 +18,18 @@ public class ResumeService {
 
     private final ResumeParserService resumeParserService;
     private final ResumeRepository resumeRepository;
+    private final UserRepository userRepository;
     private final String resumeDir;
 
     public ResumeService(
             ResumeParserService resumeParserService,
             ResumeRepository resumeRepository,
+            UserRepository userRepository,
             @Value("${app.storage.resume-dir:uploads/resumes}") String resumeDir
     ) {
         this.resumeParserService = resumeParserService;
         this.resumeRepository = resumeRepository;
+        this.userRepository = userRepository;
         this.resumeDir = resumeDir;
     }
 
@@ -41,6 +47,7 @@ public class ResumeService {
 
         saveFile(file, directory, filePath);
         String extractedText = resumeParserService.extractText(filePath);
+        User currentUser = getCurrentUser();
 
         Resume resume = new Resume();
         resume.setOriginalFileName(originalFileName);
@@ -48,6 +55,7 @@ public class ResumeService {
         resume.setContentType(file.getContentType() == null ? "application/pdf" : file.getContentType());
         resume.setStoragePath(filePath.toString());
         resume.setExtractedText(extractedText);
+        resume.setUser(currentUser);
 
         Resume savedResume = resumeRepository.save(resume);
 
@@ -89,5 +97,12 @@ public class ResumeService {
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to save resume file");
         }
+    }
+
+    private User getCurrentUser() {
+        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
+        long userId = Long.parseLong(principal);
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 }

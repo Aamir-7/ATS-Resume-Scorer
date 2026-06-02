@@ -1,5 +1,6 @@
 package com.ResumeScore.ATS.job;
 
+import com.ResumeScore.ATS.user.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,6 +26,10 @@ public class JobDescription {
     @Column(name = "raw_text", nullable = false)
     @Lob
     private String rawText;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

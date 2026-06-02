@@ -1,6 +1,7 @@
 package com.ResumeScore.ATS.report;
 
 import com.ResumeScore.ATS.analysis.Analysis;
+import com.ResumeScore.ATS.user.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,6 +21,10 @@ public class Report {
     @OneToOne
     @JoinColumn(name = "analysis_id",nullable = false,unique = true)
     private Analysis analysis;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(name = "file_name")
     private String fileName;

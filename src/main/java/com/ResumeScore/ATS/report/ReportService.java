@@ -2,9 +2,12 @@ package com.ResumeScore.ATS.report;
 
 import com.ResumeScore.ATS.analysis.Analysis;
 import com.ResumeScore.ATS.analysis.AnalysisRepository;
+import com.ResumeScore.ATS.user.User;
+import com.ResumeScore.ATS.user.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,21 +21,25 @@ public class ReportService {
 
     private final ReportRepository reportRepository;
     private final AnalysisRepository analysisRepository;
+    private final UserRepository userRepository;
     private final String reportDir;
 
     public ReportService(
             ReportRepository reportRepository,
             AnalysisRepository analysisRepository,
+            UserRepository userRepository,
             @Value("${app.storage.report-dir:uploads/reports}") String reportDir
     ) {
         this.reportRepository = reportRepository;
         this.analysisRepository = analysisRepository;
+        this.userRepository = userRepository;
         this.reportDir = reportDir;
     }
 
     @Transactional
     public Report createReport(Long analysisId) {
-        Analysis analysis = analysisRepository.findById(analysisId)
+        User currentUser = getCurrentUser();
+        Analysis analysis = analysisRepository.findByIdAndUserId(analysisId, currentUser.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Analysis not found"));
 
         String fileName = "analysis-report-" + analysisId + ".txt";
@@ -41,9 +48,10 @@ public class ReportService {
 
         writeReportFile(analysis, directory, filePath);
 
-        Report report = reportRepository.findByAnalysisId(analysisId)
+        Report report = reportRepository.findByAnalysisIdAndUserId(analysisId, currentUser.getId())
                 .orElseGet(Report::new);
         report.setAnalysis(analysis);
+        report.setUser(currentUser);
         report.setFileName(fileName);
         report.setFilePath(filePath.toString());
 
@@ -52,7 +60,7 @@ public class ReportService {
 
     @Transactional(readOnly = true)
     public Resource downloadReport(Long reportId) {
-        Report report = reportRepository.findById(reportId)
+        Report report = reportRepository.findByIdAndUserId(reportId, getCurrentUser().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Report not found"));
 
         try {
@@ -81,41 +89,77 @@ public class ReportService {
 
     @Transactional(readOnly = true)
     public Report getReportById(Long reportId) {
-        return reportRepository.findById(reportId)
+        return reportRepository.findByIdAndUserId(reportId, getCurrentUser().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Report not found"));
     }
 
     private String buildReportContent(Analysis analysis) {
         return """
-                  ATS Resume Analysis Report                                      \s
-                  ==========================                                      \s
-                                                                                  \s
-                  Generated At: %s
-                  Analysis Id: %d                                                 \s
-                  Resume Id: %d                                                   \s
-                  Job Description Id: %d                                          \s
-                  Status: %s
-                  Match Score: %.2f
-                                                                                  \s
-                  Matched Keywords:                                               \s
-                  %s                                                              \s
-                                                                                  \s
-                  Missing Keywords:                                               \s
-                  %s
-                                                                                  \s
-                  Suggestions:                                                    \s
-                  %s                                                              \s
-                 \s""".formatted(
+                ATS Resume Analysis Report
+                ==========================
+                
+                Generated At: %s
+                Analysis Id: %d
+                Resume Id: %d
+                Job Description Id: %d
+                Status: %s
+                Match Score: %.2f
+                
+                Matched Keywords:
+                %s
+                
+                Missing Keywords:
+                %s
+                
+                Summary:
+                %s
+                
+                Strengths:
+                %s
+                
+                Weaknesses:
+                %s
+                
+                ATS Risks:
+                %s
+                
+                Rewrite Suggestions:
+                %s
+                
+                Improved Bullets:
+                %s
+                """.formatted(
                 LocalDateTime.now(),
                 analysis.getId(),
                 analysis.getResume().getId(),
                 analysis.getJobDescription().getId(),
                 analysis.getStatus(),
                 analysis.getMatchScore(),
-                String.join(", ", analysis.getMatchedKeywords()),
-                String.join(", ", analysis.getMissingKeywords()),
-                analysis.getSuggestions()
+                joinList(analysis.getMatchedKeywords()),
+                joinList(analysis.getMissingKeywords()),
+                safeText(analysis.getSummary()),
+                joinList(analysis.getStrengths()),
+                joinList(analysis.getWeaknesses()),
+                joinList(analysis.getAtsRisks()),
+                joinList(analysis.getRewriteSuggestions()),
+                joinList(analysis.getImprovedBullets())
         );
+    }
+
+    private String joinList(java.util.List<String> items) {
+        return (items == null || items.isEmpty()) ? "None" : String.join(", ",
+                items);
+    }
+
+    private String safeText(String value) {
+        return (value == null || value.isBlank()) ? "Not available" : value;
+    }
+
+    private User getCurrentUser() {
+        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
+        long userId = Long.parseLong(principal);
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 }
         

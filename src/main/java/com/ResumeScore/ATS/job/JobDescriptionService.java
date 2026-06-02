@@ -2,24 +2,31 @@ package com.ResumeScore.ATS.job;
 
 import com.ResumeScore.ATS.job.dto.JobDescriptionRequest;
 import com.ResumeScore.ATS.job.dto.JobDescriptionResponse;
+import com.ResumeScore.ATS.user.User;
+import com.ResumeScore.ATS.user.UserRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class JobDescriptionService {
 
     private final JobDescriptionRepository jobDescriptionRepository;
+    private final UserRepository userRepository;
 
-    public JobDescriptionService(JobDescriptionRepository jobDescriptionRepository) {
+    public JobDescriptionService(JobDescriptionRepository jobDescriptionRepository, UserRepository userRepository) {
         this.jobDescriptionRepository = jobDescriptionRepository;
+        this.userRepository = userRepository;
     }
 
     public JobDescriptionResponse createJobDescription(JobDescriptionRequest request) {
         validateRequest(request);
+        User currentUser = getCurrentUser();
 
         JobDescription jobDescription=new JobDescription();
         jobDescription.setTitle(request.getTitle());
         jobDescription.setCompanyName(request.getCompanyName());
         jobDescription.setRawText(request.getRawText());
+        jobDescription.setUser(currentUser);
 
         JobDescription savedJob=
                 jobDescriptionRepository.save(jobDescription);
@@ -61,5 +68,12 @@ public class JobDescriptionService {
             );
 
         }
+    }
+
+    private User getCurrentUser() {
+        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
+        long userId = Long.parseLong(principal);
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 }

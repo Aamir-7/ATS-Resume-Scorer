@@ -6,19 +6,21 @@ import com.ResumeScore.ATS.auth.dto.SignupRequest;
 import com.ResumeScore.ATS.user.User;
 import com.ResumeScore.ATS.user.UserRepository;
 import com.ResumeScore.ATS.user.UserRole;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 
 @Service
 public class AuthService {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserRepository userRepository, JwtService jwtService) {
+    public AuthService(UserRepository userRepository, JwtService jwtService, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public AuthResponse signIn(LoginRequest request) {
@@ -26,7 +28,7 @@ public class AuthService {
         User user=userRepository.findByEmail(request.getEmail())
                 .orElseThrow(()->new IllegalArgumentException("Invalid email or password "));
 
-        if (!user.getPassword().equals(request.getPassword())){
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())){
             throw new IllegalArgumentException("Invalid email or password ");
         }
 
@@ -47,11 +49,11 @@ public class AuthService {
         User newUser = new User();
         newUser.setName(request.getName());
         newUser.setEmail(request.getEmail());
-        newUser.setPassword(request.getPassword());
+        newUser.setPassword(passwordEncoder.encode(request.getPassword()));
         newUser.setRole(UserRole.USER);
 
         User savedUser=userRepository.save(newUser);
-        String token= jwtService.generateToken(newUser.getId(), newUser.getRole());
+        String token= jwtService.generateToken(savedUser.getId(), savedUser.getRole());
         return new AuthResponse(
                 token,
                 newUser.getEmail(),
