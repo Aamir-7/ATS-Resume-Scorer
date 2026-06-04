@@ -1,11 +1,14 @@
 package com.ResumeScore.ATS.job;
 
+import com.ResumeScore.ATS.job.dto.JobDescriptionListResponse;
 import com.ResumeScore.ATS.job.dto.JobDescriptionRequest;
 import com.ResumeScore.ATS.job.dto.JobDescriptionResponse;
 import com.ResumeScore.ATS.user.User;
 import com.ResumeScore.ATS.user.UserRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class JobDescriptionService {
@@ -75,5 +78,31 @@ public class JobDescriptionService {
         long userId = Long.parseLong(principal);
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    public List<JobDescriptionListResponse> getMyJobDescriptions() {
+        User currentUser = getCurrentUser();
+        return jobDescriptionRepository.findAllByUserId(currentUser.getId())
+                .stream()
+                .map(jobDesc -> new JobDescriptionListResponse(
+                        jobDesc.getId(),
+                        jobDesc.getTitle(),
+                        jobDesc.getCompanyName(),
+                        jobDesc.getCreatedAt()
+                ))
+                .toList();
+    }
+
+    public JobDescriptionResponse getJobDescriptionById(Long id) {
+        User currentUser = getCurrentUser();
+        JobDescription jobDescription = jobDescriptionRepository.findByIdAndUserId(id, currentUser.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Job description not found"));
+
+        return new JobDescriptionResponse(
+                jobDescription.getId(),
+                jobDescription.getTitle(),
+                jobDescription.getCompanyName(),
+                jobDescription.getRawText()
+        );
     }
 }

@@ -1,5 +1,6 @@
 package com.ResumeScore.ATS.analysis;
 
+import com.ResumeScore.ATS.analysis.dto.AnalysisListResponse;
 import com.ResumeScore.ATS.analysis.dto.AnalysisRequest;
 import com.ResumeScore.ATS.analysis.dto.AnalysisResponse;
 import com.ResumeScore.ATS.common.ApiResponse;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/analyses")
@@ -40,6 +43,14 @@ public class AnalysisController {
         AnalysisResponse response = analysisService.getAnalysisById(id);
         return ResponseEntity.ok(
                 ApiResponse.success("Analysis fetched successfully", response)
+        );
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<AnalysisListResponse>>> getMyAnalyses() {
+        List<AnalysisListResponse> response = analysisService.getMyAnalyses();
+        return ResponseEntity.ok(
+                ApiResponse.success("Analyses fetched successfully", response)
         );
     }
 }

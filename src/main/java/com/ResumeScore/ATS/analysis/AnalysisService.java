@@ -3,6 +3,7 @@ package com.ResumeScore.ATS.analysis;
 import com.ResumeScore.ATS.analysis.ai.GeminiAnalysisService;
 import com.ResumeScore.ATS.analysis.ai.dto.GeminiAnalysisRequest;
 import com.ResumeScore.ATS.analysis.ai.dto.GeminiAnalysisResponse;
+import com.ResumeScore.ATS.analysis.dto.AnalysisListResponse;
 import com.ResumeScore.ATS.analysis.dto.AnalysisRequest;
 import com.ResumeScore.ATS.analysis.dto.AnalysisResponse;
 import com.ResumeScore.ATS.job.JobDescription;
@@ -171,5 +172,20 @@ public class AnalysisService {
         long userId = Long.parseLong(principal);
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    public List<AnalysisListResponse> getMyAnalyses() {
+        User currentUser=getCurrentUser();
+        return analysisRepository.findAllByUserId(currentUser.getId())
+                .stream()
+                .map(analysis->new AnalysisListResponse(
+                        analysis.getId(),
+                        analysis.getResume().getId(),
+                        analysis.getJobDescription().getId(),
+                        analysis.getMatchScore(),
+                        analysis.getStatus(),
+                        analysis.getCreatedAt()
+                )).toList();
+
     }
 }

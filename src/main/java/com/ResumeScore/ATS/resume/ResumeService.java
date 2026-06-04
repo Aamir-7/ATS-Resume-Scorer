@@ -1,5 +1,7 @@
 package com.ResumeScore.ATS.resume;
 
+import com.ResumeScore.ATS.resume.dto.ResumeDetailResponse;
+import com.ResumeScore.ATS.resume.dto.ResumeListResponse;
 import com.ResumeScore.ATS.resume.dto.ResumeUploadResponse;
 import com.ResumeScore.ATS.user.User;
 import com.ResumeScore.ATS.user.UserRepository;
@@ -11,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -104,5 +107,36 @@ public class ResumeService {
         long userId = Long.parseLong(principal);
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    public List<ResumeListResponse> getMyResumes() {
+        User currentUser = getCurrentUser();
+        return resumeRepository.findAllByUserId(currentUser.getId())
+                .stream()
+                .map(resume -> new ResumeListResponse(
+                        resume.getId(),
+                        resume.getOriginalFileName(),
+                        resume.getStoredFileName(),
+                        resume.getContentType(),
+                        resume.getCreatedAt()
+                ))
+                .toList();
+    }
+
+    public ResumeDetailResponse getResumeById(Long id) {
+        User currentUser = getCurrentUser();
+        Resume resume = resumeRepository.findByIdAndUserId(id, currentUser.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
+
+        return new ResumeDetailResponse(
+                resume.getId(),
+                resume.getOriginalFileName(),
+                resume.getStoredFileName(),
+                resume.getContentType(),
+                resume.getStoragePath(),
+                resume.getExtractedText(),
+                resume.getCreatedAt(),
+                resume.getUpdatedAt()
+        );
     }
 }

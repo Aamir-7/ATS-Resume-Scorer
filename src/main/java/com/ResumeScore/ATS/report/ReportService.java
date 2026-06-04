@@ -2,6 +2,7 @@ package com.ResumeScore.ATS.report;
 
 import com.ResumeScore.ATS.analysis.Analysis;
 import com.ResumeScore.ATS.analysis.AnalysisRepository;
+import com.ResumeScore.ATS.report.dto.ReportListResponse;
 import com.ResumeScore.ATS.user.User;
 import com.ResumeScore.ATS.user.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class ReportService {
@@ -91,6 +93,22 @@ public class ReportService {
     public Report getReportById(Long reportId) {
         return reportRepository.findByIdAndUserId(reportId, getCurrentUser().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Report not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReportListResponse> getMyReports() {
+        User currentUser = getCurrentUser();
+
+        return reportRepository.findAllByUserId(currentUser.getId())
+                .stream()
+                .map(report -> new ReportListResponse(
+                        report.getId(),
+                        report.getAnalysis().getId(),
+                        report.getFileName(),
+                        report.getFilePath(),
+                        report.getCreatedAt()
+                ))
+                .toList();
     }
 
     private String buildReportContent(Analysis analysis) {
