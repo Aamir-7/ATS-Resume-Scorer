@@ -6,6 +6,7 @@ import com.ResumeScore.ATS.analysis.ai.dto.GeminiAnalysisResponse;
 import com.ResumeScore.ATS.analysis.dto.AnalysisListResponse;
 import com.ResumeScore.ATS.analysis.dto.AnalysisRequest;
 import com.ResumeScore.ATS.analysis.dto.AnalysisResponse;
+import com.ResumeScore.ATS.common.PageResponse;
 import com.ResumeScore.ATS.job.JobDescription;
 import com.ResumeScore.ATS.job.JobDescriptionRepository;
 import com.ResumeScore.ATS.resume.Resume;
@@ -14,6 +15,8 @@ import com.ResumeScore.ATS.user.User;
 import com.ResumeScore.ATS.user.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -174,18 +177,36 @@ public class AnalysisService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
-    public List<AnalysisListResponse> getMyAnalyses() {
-        User currentUser=getCurrentUser();
-        return analysisRepository.findAllByUserId(currentUser.getId())
+    public PageResponse<AnalysisListResponse> getMyAnalyses(Pageable pageable) {
+        User currentUser = getCurrentUser();
+
+        Page<Analysis> page = analysisRepository.findAllByUserId(currentUser.getId(), pageable);
+        List<AnalysisListResponse> content = page.getContent()
                 .stream()
-                .map(analysis->new AnalysisListResponse(
+                .map(analysis -> new AnalysisListResponse(
                         analysis.getId(),
                         analysis.getResume().getId(),
                         analysis.getJobDescription().getId(),
                         analysis.getMatchScore(),
                         analysis.getStatus(),
                         analysis.getCreatedAt()
-                )).toList();
+                ))
+                .toList();
 
+        return new PageResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
+    }
+
+    public void deleteMyAnalysis(Long id) {
+        User currentUser=getCurrentUser();
+        Analysis analysis=analysisRepository.findByIdAndUserId(id, currentUser.getId())
+                .orElseThrow(()->new IllegalArgumentException("analysis not found "));
+        analysisRepository.delete(analysis);
     }
 }

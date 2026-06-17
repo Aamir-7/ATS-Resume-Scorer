@@ -1,11 +1,14 @@
 package com.ResumeScore.ATS.resume;
 
+import com.ResumeScore.ATS.common.PageResponse;
 import com.ResumeScore.ATS.resume.dto.ResumeDetailResponse;
 import com.ResumeScore.ATS.resume.dto.ResumeListResponse;
 import com.ResumeScore.ATS.resume.dto.ResumeUploadResponse;
 import com.ResumeScore.ATS.user.User;
 import com.ResumeScore.ATS.user.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -109,9 +112,11 @@ public class ResumeService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
-    public List<ResumeListResponse> getMyResumes() {
+    public PageResponse<ResumeListResponse> getMyResumes(Pageable pageable) {
         User currentUser = getCurrentUser();
-        return resumeRepository.findAllByUserId(currentUser.getId())
+        Page<Resume>page=resumeRepository.findAllByUserId(currentUser.getId(),pageable);
+
+        List<ResumeListResponse>content=page.getContent()
                 .stream()
                 .map(resume -> new ResumeListResponse(
                         resume.getId(),
@@ -119,8 +124,16 @@ public class ResumeService {
                         resume.getStoredFileName(),
                         resume.getContentType(),
                         resume.getCreatedAt()
-                ))
-                .toList();
+                )).toList();
+
+        return new PageResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
     }
 
     public ResumeDetailResponse getResumeById(Long id) {
@@ -139,4 +152,23 @@ public class ResumeService {
                 resume.getUpdatedAt()
         );
     }
+
+    public void deleteMyResume(Long id) {
+        User currentUser=getCurrentUser();
+        Resume resume=resumeRepository.findByIdAndUserId(id, currentUser.getId())
+                .orElseThrow(()->new IllegalArgumentException("resume not found "));
+
+        deleteFileIfExists(resume.getStoragePath());
+
+        resumeRepository.delete(resume);
+    }
+
+    private void deleteFileIfExists(String filePath) {
+        try {
+            Files.deleteIfExists(Path.of(filePath));
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to delete resume file");
+        }
+    }
+
 }

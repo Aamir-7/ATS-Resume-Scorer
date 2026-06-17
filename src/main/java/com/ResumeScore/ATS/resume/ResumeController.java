@@ -1,9 +1,13 @@
 package com.ResumeScore.ATS.resume;
 
 import com.ResumeScore.ATS.common.ApiResponse;
+import com.ResumeScore.ATS.common.PageResponse;
 import com.ResumeScore.ATS.resume.dto.ResumeDetailResponse;
 import com.ResumeScore.ATS.resume.dto.ResumeListResponse;
 import com.ResumeScore.ATS.resume.dto.ResumeUploadResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,8 +33,10 @@ public class ResumeController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ResumeListResponse>>> getMyResumes() {
-        List<ResumeListResponse> response = resumeService.getMyResumes();
+    public ResponseEntity<ApiResponse<PageResponse<ResumeListResponse>>> getMyResumes(
+            @PageableDefault(size = 10,sort = "createdAt",direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        PageResponse<ResumeListResponse> response = resumeService.getMyResumes(pageable);
         return ResponseEntity.ok(
                 ApiResponse.success("Resumes fetched successfully", response)
         );
@@ -43,6 +49,16 @@ public class ResumeController {
         ResumeDetailResponse response = resumeService.getResumeById(id);
         return ResponseEntity.ok(
                 ApiResponse.success("Resume fetched successfully", response)
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>>deleteResume(
+            @PathVariable Long id
+    ){
+        resumeService.deleteMyResume(id);
+        return ResponseEntity.ok(
+                ApiResponse.success("Resume deleted successfully ",null)
         );
     }
 }

@@ -1,16 +1,18 @@
 package com.ResumeScore.ATS.report;
 
 import com.ResumeScore.ATS.common.ApiResponse;
+import com.ResumeScore.ATS.common.PageResponse;
 import com.ResumeScore.ATS.report.dto.ReportListResponse;
 import com.ResumeScore.ATS.report.dto.ReportResponse;
 
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -54,8 +56,10 @@ public class ReportController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ReportListResponse>>> getMyReports() {
-        List<ReportListResponse> response = reportService.getMyReports();
+    public ResponseEntity<ApiResponse<PageResponse<ReportListResponse>>> getMyReports(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        PageResponse<ReportListResponse> response = reportService.getMyReports(pageable);
         return ResponseEntity.ok(
                 ApiResponse.success("Reports fetched successfully", response)
         );
@@ -75,6 +79,16 @@ public class ReportController {
         );
         return ResponseEntity.ok(
                 ApiResponse.success("Report fetched successfully", response)
+        );
+    }
+
+    @DeleteMapping("/{reportId}")
+    public ResponseEntity<ApiResponse<Void>>deleteReport(
+            @PathVariable Long reportId
+    ){
+        reportService.deleteMyReport(reportId);
+        return ResponseEntity.ok(
+                ApiResponse.success("Report deleted successfully",null)
         );
     }
 }

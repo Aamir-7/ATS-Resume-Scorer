@@ -2,12 +2,15 @@ package com.ResumeScore.ATS.report;
 
 import com.ResumeScore.ATS.analysis.Analysis;
 import com.ResumeScore.ATS.analysis.AnalysisRepository;
+import com.ResumeScore.ATS.common.PageResponse;
 import com.ResumeScore.ATS.report.dto.ReportListResponse;
 import com.ResumeScore.ATS.user.User;
 import com.ResumeScore.ATS.user.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,10 +99,11 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReportListResponse> getMyReports() {
+    public PageResponse<ReportListResponse> getMyReports(Pageable pageable) {
         User currentUser = getCurrentUser();
 
-        return reportRepository.findAllByUserId(currentUser.getId())
+        Page<Report> page = reportRepository.findAllByUserId(currentUser.getId(), pageable);
+        List<ReportListResponse> content = page.getContent()
                 .stream()
                 .map(report -> new ReportListResponse(
                         report.getId(),
@@ -109,6 +113,15 @@ public class ReportService {
                         report.getCreatedAt()
                 ))
                 .toList();
+
+        return new PageResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
     }
 
     private String buildReportContent(Analysis analysis) {
@@ -178,6 +191,27 @@ public class ReportService {
         long userId = Long.parseLong(principal);
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    public void deleteMyReport(Long reportId) {
+        User currentUser=getCurrentUser();
+        Report report=reportRepository.findByIdAndUserId(reportId, currentUser.getId())
+                .orElseThrow(()->new IllegalArgumentException("report not found "));
+        deleteIfFileExists(report.getFilePath());
+
+        reportRepository.delete(report);
+
+    }
+
+    private void deleteIfFileExists(String filePath){
+        if (filePath ==null || filePath.isBlank()){
+            return;
+        }
+        try {
+            Files.deleteIfExists(Path.of(filePath));
+        } catch (IOException e) {
+            throw new IllegalStateException("file can not be deleted ");
+        }
     }
 }
         

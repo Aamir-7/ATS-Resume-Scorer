@@ -1,9 +1,13 @@
 package com.ResumeScore.ATS.job;
 
 import com.ResumeScore.ATS.common.ApiResponse;
+import com.ResumeScore.ATS.common.PageResponse;
 import com.ResumeScore.ATS.job.dto.JobDescriptionListResponse;
 import com.ResumeScore.ATS.job.dto.JobDescriptionRequest;
 import com.ResumeScore.ATS.job.dto.JobDescriptionResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,20 +41,38 @@ public class JobDescriptionController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<JobDescriptionListResponse>>> getMyJobDescriptions() {
-        List<JobDescriptionListResponse> response = jobDescriptionService.getMyJobDescriptions();
+    public ResponseEntity<ApiResponse<PageResponse<JobDescriptionListResponse>>>
+    getMyJobDescriptions(
+            @PageableDefault(size = 10, sort = "createdAt", direction =
+                    Sort.Direction.DESC)
+            Pageable pageable
+    ) {
+        PageResponse<JobDescriptionListResponse> response =
+                jobDescriptionService.getMyJobDescriptions(pageable);
+
         return ResponseEntity.ok(
-                ApiResponse.success("Job descriptions fetched successfully", response)
+                ApiResponse.success("Job descriptions fetched successfully",
+                        response)
         );
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<JobDescriptionResponse>> getJobDescriptionById(
-            @PathVariable Long id
-    ) {
-        JobDescriptionResponse response = jobDescriptionService.getJobDescriptionById(id);
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<JobDescriptionResponse>>updateDesc(
+            @PathVariable Long id,
+            @RequestBody JobDescriptionRequest request
+    ){
+        JobDescriptionResponse response=jobDescriptionService.updateDesc(id,request);
         return ResponseEntity.ok(
-                ApiResponse.success("Job description fetched successfully", response)
+                ApiResponse.success("Job desc updated successfully ",response)
         );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteJob(
+            @PathVariable Long id
+    ){
+        jobDescriptionService.deleteJobDesc(id);
+        return ResponseEntity.ok(ApiResponse.success("Job description deleted successfully ",null));
     }
 }

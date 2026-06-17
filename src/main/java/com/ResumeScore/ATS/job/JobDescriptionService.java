@@ -1,10 +1,13 @@
 package com.ResumeScore.ATS.job;
 
+import com.ResumeScore.ATS.common.PageResponse;
 import com.ResumeScore.ATS.job.dto.JobDescriptionListResponse;
 import com.ResumeScore.ATS.job.dto.JobDescriptionRequest;
 import com.ResumeScore.ATS.job.dto.JobDescriptionResponse;
 import com.ResumeScore.ATS.user.User;
 import com.ResumeScore.ATS.user.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -80,9 +83,16 @@ public class JobDescriptionService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
-    public List<JobDescriptionListResponse> getMyJobDescriptions() {
+    public PageResponse<JobDescriptionListResponse> getMyJobDescriptions(Pageable
+                                                                                 pageable) {
         User currentUser = getCurrentUser();
-        return jobDescriptionRepository.findAllByUserId(currentUser.getId())
+
+        Page<JobDescription> page = jobDescriptionRepository.findAllByUserId(
+                currentUser.getId(),
+                pageable
+        );
+
+        List<JobDescriptionListResponse> content = page.getContent()
                 .stream()
                 .map(jobDesc -> new JobDescriptionListResponse(
                         jobDesc.getId(),
@@ -91,18 +101,44 @@ public class JobDescriptionService {
                         jobDesc.getCreatedAt()
                 ))
                 .toList();
-    }
 
-    public JobDescriptionResponse getJobDescriptionById(Long id) {
-        User currentUser = getCurrentUser();
-        JobDescription jobDescription = jobDescriptionRepository.findByIdAndUserId(id, currentUser.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Job description not found"));
+        return new PageResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
+    }
+    public JobDescriptionResponse updateDesc(Long id,JobDescriptionRequest request){
+
+        validateRequest(request);
+
+        User currentUser=getCurrentUser();
+
+        JobDescription currentDesc=jobDescriptionRepository.findByIdAndUserId(id,currentUser.getId())
+                .orElseThrow(()->new IllegalArgumentException("Job not found "));
+
+        currentDesc.setCompanyName(request.getCompanyName());
+        currentDesc.setTitle(request.getTitle());
+        currentDesc.setRawText(request.getRawText());
+
+        JobDescription savedDesc=jobDescriptionRepository.save(currentDesc);
 
         return new JobDescriptionResponse(
-                jobDescription.getId(),
-                jobDescription.getTitle(),
-                jobDescription.getCompanyName(),
-                jobDescription.getRawText()
+                savedDesc.getId(),
+                savedDesc.getTitle(),
+                savedDesc.getCompanyName(),
+                savedDesc.getRawText()
         );
+
+    }
+
+    public void deleteJobDesc(Long id){
+        User currentUser=getCurrentUser();
+        JobDescription getJobDesc=jobDescriptionRepository.findByIdAndUserId(id, currentUser.getId())
+                .orElseThrow(()-> new IllegalArgumentException("Job desc not found "));
+        jobDescriptionRepository.deleteById(id);
     }
 }

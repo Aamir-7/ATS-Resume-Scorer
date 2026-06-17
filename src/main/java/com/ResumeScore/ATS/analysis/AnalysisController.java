@@ -4,16 +4,12 @@ import com.ResumeScore.ATS.analysis.dto.AnalysisListResponse;
 import com.ResumeScore.ATS.analysis.dto.AnalysisRequest;
 import com.ResumeScore.ATS.analysis.dto.AnalysisResponse;
 import com.ResumeScore.ATS.common.ApiResponse;
+import com.ResumeScore.ATS.common.PageResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/analyses")
@@ -47,10 +43,22 @@ public class AnalysisController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<AnalysisListResponse>>> getMyAnalyses() {
-        List<AnalysisListResponse> response = analysisService.getMyAnalyses();
+    public ResponseEntity<ApiResponse<PageResponse<AnalysisListResponse>>> getMyAnalyses(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        PageResponse<AnalysisListResponse> response = analysisService.getMyAnalyses(pageable);
         return ResponseEntity.ok(
                 ApiResponse.success("Analyses fetched successfully", response)
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteAnalysis(
+            @PathVariable Long id
+    ) {
+        analysisService.deleteMyAnalysis(id);
+        return ResponseEntity.ok(
+                ApiResponse.success("Analysis deleted successfully", null)
         );
     }
 }
